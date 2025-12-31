@@ -148,4 +148,11 @@ def parse(info_json: str, mirror: bool=False) -> NoteInfo:
                 prev.next_note = logic_note
                 logic_note.prev_note = prev
                 chain_group_end[logic_note.group] = logic_note
+    bgm_notes = [x for x in info.notes if x.note_type == 1]
+    if bgm_notes:
+        bgm_note_time = bgm_notes[0].time
+        bgm_notes[0].time = 0
+        bgm_note_time -= 2.0
+        for note in info.notes:
+            note.time -= bgm_note_time
     return info
