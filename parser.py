@@ -71,7 +71,7 @@ class Note:
         return self.note_type == 10 or self.note_type == 40
 
     def is_meta_note(self):
-        # Type 1: Track Start?
+        # Type 1: Play Bgm
         # Type 2: Bpm Change
         # Type 3: Time Scale
         return self.note_type < 10
@@ -89,6 +89,13 @@ class NoteInfo:
         self.delay = delay
         self.notes = notes
 
+
+def _raw_note_sort_key(note) -> float:
+    beat_plus: int = note[0]
+    beat_split: int = note[2]
+    beat_idx: int = note[4]
+    return ((beat_idx / beat_split) + beat_plus)
+
     
 def parse(info_json: str, mirror: bool=False) -> NoteInfo:
     value = json.loads(info_json)
@@ -100,6 +107,7 @@ def parse(info_json: str, mirror: bool=False) -> NoteInfo:
     minus_beat = 0.0
     charge_group_end: dict[int | None, Note] = {}
     chain_group_end: dict[int | None, Note] = {}
+    notes.sort(key=_raw_note_sort_key)
     for note in notes:
         beat_plus: int = note[0]
         position_split: int = note[1]
