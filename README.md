@@ -1,4 +1,4 @@
-# ChainBeeT Chart  Renderer
+# ChainBeeT Chart Renderer
 Convert ChainBeeT chart JSON to analyzed notes and render 2D chart preview.
 
 Features:
@@ -6,6 +6,6 @@ Features:
 * Beat Hints
 * Speed Change Hints
 ## Sample Chart
-2D chart preview for "G e n g a o z o":
+2D chart preview for "G e n g a o z o" [EXTRA]:
 
 ![Gengaozo](/assets/gengaozo.png)
