@@ -1,11 +1,12 @@
 from parser import NoteInfo, Note
+from typing import Optional
 import math
 import skia as sk
 
 
-def analyze_beat_lines(chart: NoteInfo) -> list[float]:
+def analyze_beat_lines(chart: NoteInfo, max_time: Optional[float] = None) -> list[float]:
     bpm_changes = [x for x in chart.notes if x.note_type == 2]
-    max_time = max(x.time for x in chart.notes)
+    max_time = max(x.time for x in chart.notes) if max_time is None else max_time
     curr_bpm = chart.bpm
     curr_time = 0.0
     timings: list[float] = []
@@ -94,6 +95,12 @@ def _create_chain_path():
     return path
 
 
+def _get_time_description(time: float) -> str:
+    seconds = time % 60
+    minutes = int(time // 60)
+    return '{}:{:.2f}'.format(minutes, seconds)
+
+
 class ChainbeetRenderConfig:
     height_factor: int = 300
     track_width: int = 450
@@ -101,6 +108,8 @@ class ChainbeetRenderConfig:
     width_extra: int = 150
     width_scale: float = 0.9
     page_height: int = 3000
+    top_margin: int = 50
+    bottom_margin: int = 50
 
     min_time_scale: float = 0.5
     max_time_scale: float = 2.0
@@ -129,10 +138,13 @@ class ChainbeetRenderer:
         if time > last_change_time:
             current_sum += current_speed * (time - last_change_time)
         return current_sum * self.config.height_factor
+    
+    def get_combo_before(self, time: float) -> int:
+        return len([x for x in self.notes if x.time < time and not x.is_meta_note()])
 
     def render(self) -> sk.Image:
         notes = self.notes
-        max_time = max(x.time for x in notes)
+        max_time = max(x.time for x in notes) + 1
         height = int(self.compute_time_y(max_time)) + 1
         width = self.config.track_width
         surface = sk.Surface(width + self.config.width_extra, height + self.config.height_extra)
@@ -160,9 +172,18 @@ class ChainbeetRenderer:
                 limit_time = max_time if i + 1 >= len(self.speed_changes) else self.speed_changes[i + 1].time
                 canvas.drawRect(sk.Rect(0, height - self.compute_time_y(limit_time), width, height - self.compute_time_y(self.speed_changes[i].time)), layer_paint)
         # Beatline Hint
-        for time in analyze_beat_lines(self.chart):
+        hint_paint = sk.Paint(Color=0xffffffff)
+        hint_font = sk.Font()
+        hint_font.setSize(20)
+        for time in analyze_beat_lines(self.chart, max_time):
             y = height - self.compute_time_y(time)
+            combo = str(self.get_combo_before(time))
             canvas.drawLine(0, y, width, y, beat_line_paint)
+            text_width = hint_font.measureText(combo)
+            canvas.drawString(combo, -text_width - 10, y + hint_font.getMetrics().fDescent - hint_font.getSpacing() / 2, hint_font, hint_paint)
+            t = _get_time_description(time)
+            text_width = hint_font.measureText(t)
+            canvas.drawString(t, -text_width - 10, y + hint_font.getMetrics().fDescent + hint_font.getSpacing() / 2, hint_font, hint_paint)
         analyzed_lines = analyze_coincident_lines(notes)
         for time, note_list in analyzed_lines:
             y = height - self.compute_time_y(time)
@@ -233,13 +254,13 @@ class ChainbeetRenderer:
         height_limit = self.config.page_height
         required_page = math.ceil(surface.height() / height_limit)
         required_width = required_page * surface.width()
-        surface_2 = sk.Surface(required_width, height_limit)
+        surface_2 = sk.Surface(required_width, height_limit + self.config.top_margin + self.config.bottom_margin)
         canvas = surface_2.getCanvas()
         canvas.drawColor(0xff080403)
         for i in range(required_page):
             top_y, bottom_y = surface.height() - height_limit * (i + 1), surface.height() - height_limit * i
             src_rect = sk.Rect(0, top_y, surface.width(), bottom_y)
-            dst_rect = sk.Rect(surface.width() * i, 0, surface.width() * (i + 1), height_limit)
+            dst_rect = sk.Rect(surface.width() * i, self.config.top_margin, surface.width() * (i + 1), self.config.top_margin + height_limit)
             canvas.drawImageRect(image, src_rect, dst_rect)
         image = surface_2.makeImageSnapshot()
         return image
