@@ -1,5 +1,5 @@
 from parser import parse
-from renderer import ChainbeetRenderer, ChainbeetRenderConfig
+from renderer import ChainbeetRenderer
 import skia as sk
 
 if __name__ == '__main__':
