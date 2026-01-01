@@ -18,8 +18,9 @@ def analyze_beat_lines(chart: NoteInfo, max_time: Optional[float] = None) -> lis
             curr_time += delta_time
             timings.append(curr_time)
         if curr_index < len(bpm_changes):
-            curr_bpm = bpm_changes[curr_index].bpm
+            curr_bpm = bpm_changes[curr_index].change_bpm
             timings.append(bpm_changes[curr_index].time)
+            curr_time = bpm_changes[curr_index].time
         else:
             break
         curr_index += 1
