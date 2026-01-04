@@ -79,11 +79,11 @@ class Note:
 
 class NoteInfo:
     bpm: float
-    directory: str
+    directory: str | None
     delay: int
     notes: list[Note]
 
-    def __init__(self, bpm: float, directory: str, delay: int, notes: list[Note]) -> None:
+    def __init__(self, bpm: float, directory: str | None, delay: int, notes: list[Note]) -> None:
         self.bpm = bpm
         self.directory = directory
         self.delay = delay
@@ -100,7 +100,7 @@ def _raw_note_sort_key(note) -> float:
 def parse(info_json: str, mirror: bool=False) -> NoteInfo:
     value = json.loads(info_json)
     info_value = value['info']
-    info = NoteInfo(float(info_value['bpm']), info_value['dir'], info_value['delay'], [])
+    info = NoteInfo(float(info_value['bpm']), info_value.get('dir'), int(info_value.get('delay', 0)), [])
     notes = value['notes']
     curr_time = 0.0
     curr_bpm = info.bpm
