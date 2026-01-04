@@ -72,26 +72,28 @@ def analyze_beats(notes: list) -> list[tuple[float, int]]:
     return result
 
 
-def _create_charge_path(extra_width: float = 0.0):
+def _create_charge_path(width: float, base_size: float):
+    extra_width = width - base_size * 2
     half_width = extra_width / 2
     path = sk.Path()
-    a = 5 * (3 ** 0.5)
-    path.moveTo(-10 - half_width, 0)
-    path.lineTo(-5 - half_width, -a)
-    path.lineTo(5 + half_width, -a)
-    path.lineTo(10 + half_width, 0)
-    path.lineTo(5 + half_width, a)
-    path.lineTo(-5 - half_width, a)
+    half_base = base_size / 2
+    a = half_base * (3 ** 0.5)
+    path.moveTo(-base_size - half_width, 0)
+    path.lineTo(-half_base - half_width, -a)
+    path.lineTo(half_base + half_width, -a)
+    path.lineTo(base_size + half_width, 0)
+    path.lineTo(half_base + half_width, a)
+    path.lineTo(-half_base - half_width, a)
     path.close()
     return path
 
 
-def _create_chain_path():
+def _create_chain_path(base_size: float):
     path = sk.Path()
-    path.moveTo(0, -10)
-    path.lineTo(10, 0)
-    path.lineTo(0, 10)
-    path.lineTo(-10, 0)
+    path.moveTo(0, -base_size)
+    path.lineTo(base_size, 0)
+    path.lineTo(0, base_size)
+    path.lineTo(-base_size, 0)
     path.close()
     return path
 
@@ -111,6 +113,7 @@ class ChainbeetRenderConfig:
     page_height: int = 3000
     top_margin: int = 50
     bottom_margin: int = 50
+    note_base_size: int = 10
 
     min_time_scale: float = 0.5
     max_time_scale: float = 2.0
@@ -152,6 +155,7 @@ class ChainbeetRenderer:
         return len([x for x in self.notes if x.time < time and not x.is_meta_note()])
 
     def render(self) -> sk.Image:
+        base_size = self.config.note_base_size
         notes = self.notes
         max_time = max(x.time for x in notes) + 2
         height = int(self.compute_time_y(max_time)) + 1
@@ -171,7 +175,7 @@ class ChainbeetRenderer:
                                           PathEffect=sk.DashPathEffect.Make([15, 15], 0))
         line_paint = sk.Paint(Color=0xffeeeeee)
         beat_line_paint = sk.Paint(Color=0xff888888, StrokeWidth=1)
-        chain_path = _create_chain_path()
+        chain_path = _create_chain_path(base_size)
         for note in notes:
             note.position -= (note.position - 0.5) * (1.0 - self.config.width_scale)
         layer_paint = sk.Paint(Color=0x11ffff00)
@@ -204,12 +208,12 @@ class ChainbeetRenderer:
         notes.sort(key=lambda x: x.time)
         for note in notes:
             if note.is_tap_note():
-                note_width = width * note.width * self.config.width_scale if note.is_wide_note() else 20
+                note_width = width * note.width * self.config.width_scale if note.is_wide_note() else base_size * 2
                 y = height - self.compute_time_y(note.time)
-                rect = sk.Rect(width * note.position - note_width / 2, y - 10,
-                               width * note.position + note_width / 2, y + 10)
-                canvas.drawRoundRect(rect, 10, 10, tap_paint)
-                canvas.drawRoundRect(rect, 10, 10,
+                rect = sk.Rect(width * note.position - note_width / 2, y - base_size,
+                               width * note.position + note_width / 2, y + base_size)
+                canvas.drawRoundRect(rect, base_size, base_size, tap_paint)
+                canvas.drawRoundRect(rect, base_size, base_size,
                                      note_bold_stroke_paint if note.time in coincident_timings else note_stroke_paint)
             elif note.is_chain_note(0):
                 if note.next_note:
@@ -222,7 +226,7 @@ class ChainbeetRenderer:
                                 note_bold_stroke_paint if note.time in coincident_timings else note_stroke_paint)
                 chain_path.offset(-width * note.position, -(height - self.compute_time_y(note.time)))
             elif note.is_long_note():
-                note_width = width * note.width * self.config.width_scale if note.is_wide_note() else 20
+                note_width = width * note.width * self.config.width_scale if note.is_wide_note() else base_size * 2
                 if note.next_note:
                     start_x, start_y = width * note.position, height - self.compute_time_y(note.time)
                     end_x, end_y = width * note.next_note.position, height - self.compute_time_y(note.next_note.time)
@@ -234,7 +238,7 @@ class ChainbeetRenderer:
                     path.close()
                     canvas.drawPath(path, charge_segment_paint)
                     canvas.drawPath(path, charge_segment_stroke_paint)
-                charge_path = _create_charge_path(note_width - 20)
+                charge_path = _create_charge_path(note_width, base_size)
                 charge_path.offset(width * note.position, height - self.compute_time_y(note.time))
                 canvas.drawPath(charge_path, charge_paint)
                 canvas.drawPath(charge_path,
