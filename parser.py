@@ -82,12 +82,14 @@ class NoteInfo:
     directory: str | None
     delay: int
     notes: list[Note]
+    is_mirror: bool
 
-    def __init__(self, bpm: float, directory: str | None, delay: int, notes: list[Note]) -> None:
+    def __init__(self, bpm: float, directory: str | None, delay: int, notes: list[Note], is_mirror: bool = False) -> None:
         self.bpm = bpm
         self.directory = directory
         self.delay = delay
         self.notes = notes
+        self.is_mirror = is_mirror
 
 
 def _raw_note_sort_key(note) -> float:
@@ -100,7 +102,7 @@ def _raw_note_sort_key(note) -> float:
 def parse(info_json: str, mirror: bool=False) -> NoteInfo:
     value = json.loads(info_json)
     info_value = value['info']
-    info = NoteInfo(float(info_value['bpm']), info_value.get('dir'), int(info_value.get('delay', 0)), [])
+    info = NoteInfo(float(info_value['bpm']), info_value.get('dir'), int(info_value.get('delay', 0)), [], mirror)
     notes = value['notes']
     curr_time = 0.0
     curr_bpm = info.bpm
